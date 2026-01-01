@@ -1,159 +1,136 @@
 .sidebar {
-  width: 220px;
-  background-color: #1e293b;
-  color: #94a3b8;
+  width: 260px;
+  height: 100vh;
+  background: linear-gradient(180deg, #1976d2 0%, #1565c0 100%);
   position: fixed;
   left: 0;
   top: 0;
-  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  transition: transform 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   z-index: 1000;
 }
 
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.sidebar-overlay.active {
-  display: block;
-  opacity: 1;
-}
-
 .sidebar-header {
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #334155;
-}
-
-.brand-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo {
-  font-size: 24px;
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 8px;
+  gap: 12px;
+  color: white;
 }
 
-.brand-info h3 {
-  color: #f1f5f9;
-  font-size: 16px;
+.logo h2 {
+  font-size: 20px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin: 0;
+  line-height: 1.2;
 }
 
-.brand-info p {
+.logo span {
   font-size: 12px;
-  color: #64748b;
-}
-
-.close-btn {
-  display: none;
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 5px;
-  transition: color 0.2s;
-}
-
-.close-btn:hover {
-  color: #f1f5f9;
+  opacity: 0.9;
+  display: block;
 }
 
 .sidebar-nav {
   flex: 1;
   padding: 20px 0;
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
+  padding: 14px 20px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: all 0.3s;
+  font-size: 15px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
-  background-color: #334155;
-  color: #f1f5f9;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .nav-item.active {
-  background-color: #334155;
-  color: #f1f5f9;
-  border-left: 3px solid #6366f1;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-left-color: #ffd54f;
 }
 
-.nav-icon {
-  font-size: 18px;
-  width: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.nav-item svg {
+  flex-shrink: 0;
 }
 
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid #334155;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.user-role {
   font-size: 12px;
+  opacity: 0.8;
 }
 
-.sidebar-footer p {
-  margin-bottom: 8px;
-  color: #94a3b8;
+/* Scrollbar styling */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
 }
 
-.sidebar-footer a {
-  color: #6366f1;
-  text-decoration: none;
+.sidebar-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.sidebar-footer a:hover {
-  text-decoration: underline;
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
-/* Responsive Styles */
-@media (max-width: 1024px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  
-  .close-btn {
-    display: block;
-  }
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .sidebar {
-    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
   }
 }
