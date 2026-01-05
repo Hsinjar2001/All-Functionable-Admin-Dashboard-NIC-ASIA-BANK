@@ -1,0 +1,17 @@
+/* Import all styles from Login.css - they are identical */
+@import '../Login/Login.css';
+
+/* Any specific overrides for Signup can go here */
+.checkbox-label a {
+  color: #1976d2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.checkbox-label a:hover {
+  text-decoration: underline;
+}
+
+.checkbox-label.error {
+  color: #f44336;
+}
