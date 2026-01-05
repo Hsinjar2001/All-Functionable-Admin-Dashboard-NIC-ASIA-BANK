@@ -29,16 +29,7 @@ def create_access_token(
     data: Dict[str, Any],
     expires_delta: Optional[timedelta] = None,
 ) -> str:
-    """
-    Create a JWT access token.
-    
-    Args:
-        data: Dictionary containing user data (must include 'sub' for user_id)
-        expires_delta: Optional custom expiration time
-        
-    Returns:
-        Encoded JWT token string
-    """
+ 
     to_encode = data.copy()
     
     if expires_delta:
@@ -50,14 +41,9 @@ def create_access_token(
     
     to_encode.update({"exp": expire})
     
-    # 🔥 FIX: Convert 'sub' to string (JWT standard requires subject as string)
-    if "sub" in to_encode:
-        to_encode["sub"] = str(to_encode["sub"])
-    
     # 🔍 DEBUG: Print token creation info
     print(f"\n🔑 Creating token for user_id={data.get('sub')}, email={data.get('email')}")
     print(f"   Using SECRET_KEY: {settings.SECRET_KEY[:15]}...")
-    print(f"   Token payload: {to_encode}")
     
     encoded_jwt = jwt.encode(
         to_encode,
@@ -71,15 +57,7 @@ def create_access_token(
 
 
 def decode_access_token(token: str) -> Optional[TokenData]:
-    """
-    Decode and validate a JWT access token.
     
-    Args:
-        token: JWT token string to decode
-        
-    Returns:
-        TokenData if valid, None if invalid
-    """
     try:
         # 🔍 DEBUG: Print decode attempt
         print(f"\n🔓 Decoding token: {token[:50]}...")
@@ -92,7 +70,7 @@ def decode_access_token(token: str) -> Optional[TokenData]:
         )
         
         print(f"   ✅ Token decoded successfully!")
-        print(f"   📦 Payload: {payload}")
+        print(f"   Payload: {payload}")
         
         # Extract user_id from 'sub' claim (standard JWT claim)
         sub = payload.get("sub")
@@ -103,16 +81,14 @@ def decode_access_token(token: str) -> Optional[TokenData]:
             return None
         
         # Convert sub to integer (user_id)
-        # Now 'sub' should be a string like "9", convert it to int
         try:
             user_id = int(sub)
-            print(f"   ✅ User ID from token: {user_id}")
-        except (TypeError, ValueError) as e:
-            print(f"   ❌ Cannot convert sub to int: {sub}, error: {e}")
+        except (TypeError, ValueError):
+            print(f"   ❌ Cannot convert sub to int: {sub}")
             return None
         
         token_data = TokenData(user_id=user_id, email=email)
-        print(f"   ✅ TokenData created: user_id={user_id}, email={email}")
+        print(f"   ✅ Valid token for user_id={user_id}")
         
         return token_data
         
