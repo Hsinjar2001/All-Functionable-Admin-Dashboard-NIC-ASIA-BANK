@@ -177,7 +177,7 @@ export default function Signup() {
                 <label htmlFor="fullName">Full Name</label>
                 <div className={`input-wrapper ${errors.fullName ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaUser />
+                    {/* <FaUser /> */}
                   </span>
                   <input
                     type="text"
@@ -197,7 +197,7 @@ export default function Signup() {
                 <label htmlFor="email">Email Address</label>
                 <div className={`input-wrapper ${errors.email ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaEnvelope />
+                    {/* <FaEnvelope /> */}
                   </span>
                   <input
                     type="email"
@@ -217,7 +217,7 @@ export default function Signup() {
                 <label htmlFor="password">Password</label>
                 <div className={`input-wrapper ${errors.password ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaLock />
+                    {/* <FaLock /> */}
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -243,7 +243,7 @@ export default function Signup() {
                 <label htmlFor="confirmPassword">Confirm Password</label>
                 <div className={`input-wrapper ${errors.confirmPassword ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaLock />
+                    {/* <FaLock /> */}
                   </span>
                   <input
                     type={showConfirmPassword ? "text" : "password"}

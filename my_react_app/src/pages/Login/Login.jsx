@@ -196,7 +196,7 @@ export default function Login() {
                 <label htmlFor="email">Email Address</label>
                 <div className={`input-wrapper ${errors.email ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaEnvelope />
+                    {/* <FaEnvelope /> */}
                   </span>
                   <input
                     type="email"
@@ -216,7 +216,7 @@ export default function Login() {
                 <label htmlFor="password">Password</label>
                 <div className={`input-wrapper ${errors.password ? 'error' : ''}`}>
                   <span className="input-icon">
-                    <FaLock />
+                    {/* <FaLock /> */}
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}

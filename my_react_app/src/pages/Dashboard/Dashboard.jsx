@@ -323,9 +323,9 @@ export default function Dashboard() {
       <div className="top-nav-bar">
         {/* <h1 className="dashboard-title">Dashboard</h1> */}
         <div className="profile-actions">
-          <a href="#profile" className="home-profile-link">
+          {/* <a href="#profile" className="home-profile-link">
             {getCurrentUser()?.name || 'Profile'}
-          </a>
+          </a> */}
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </div>
@@ -434,17 +434,17 @@ export default function Dashboard() {
       </div>
 
       {/* Mobile Filter Toggle */}
-      <button 
+      {/* <button 
         className="mobile-filter-toggle"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      > */}
+        {/* <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="3" y1="12" x2="21" y2="12"></line>
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
+        </svg> */}
         Filters & Options
-      </button>
+      {/* </button> */}
 
       {/* User Management Tools */}
       <div className={`management-tools ${mobileMenuOpen ? 'open' : ''}`}>
@@ -461,10 +461,10 @@ export default function Dashboard() {
         </div>
         <div className="right-tools">
           <div className="search-box">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8"/>
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
+            </svg> */}
             <input 
               type="text" 
               placeholder="Search users..." 

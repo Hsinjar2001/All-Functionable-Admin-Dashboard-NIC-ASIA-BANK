@@ -84,7 +84,7 @@ export default function Sidebar() {
           <div className="user-avatar">A</div>
           <div>
             <div className="user-name">Admin User</div>
-            <div className="user-role">Super Admin</div>
+            
           </div>
         </div>
       </div>
