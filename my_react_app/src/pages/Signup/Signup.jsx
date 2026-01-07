@@ -64,19 +64,68 @@ export default function Signup() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ FIXED: REAL API CALL WITH CORRECT ENDPOINT
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
     
     setIsLoading(true);
+    console.log('🚀 Signup form submitted');
+    console.log('📝 Signup Data:', formData);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Signup Data:', formData);
+    try {
+      console.log('📤 Request: POST /auth/register');
+      console.log('📤 Sending data:', {
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password
+      });
+      
+      // ✅ FIXED: Changed from /signup to /register
+      const response = await fetch('http://localhost:8000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      console.log('📥 Response status:', response.status);
+      
+    if (!response.ok) {
+  const errorData = await response.json();
+  console.error('❌ Signup failed:', errorData);
+  console.error('❌ Full error:', JSON.stringify(errorData, null, 2));
+  throw new Error(errorData.detail || JSON.stringify(errorData) || 'Signup failed');
+}
+
+      const data = await response.json();
+      console.log('✅ Signup response:', data);
+      
+      // Success! Redirect to login
+      console.log('🎉 Signup successful! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login', { 
+          state: { 
+            message: 'Account created successfully! Please login.' 
+          } 
+        });
+      }, 500);
+      
+    } catch (error) {
+      console.error('❌ Signup error:', error);
+      console.error('❌ Error details:', error.message);
+      setErrors({ 
+        email: error.message || 'Signup failed. Please try again.' 
+      });
+    } finally {
       setIsLoading(false);
-      navigate('/login');
-    }, 1500);
+    }
   };
 
   return (

@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaUserShield } from 'react-icons/fa';
 import './Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
+  const [logoutMessage, setLogoutMessage] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -14,6 +16,16 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if user was redirected after logout
+  useEffect(() => {
+    const fromLogout = location.state?.fromLogout || new URLSearchParams(location.search).get('logout');
+    
+    if (fromLogout) {
+      setLogoutMessage('You have been successfully logged out.');
+    }
+  }, [location]);
+
+  // ✅ FUNCTION 1: Handle input changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -26,6 +38,7 @@ export default function Login() {
     }
   };
 
+  // ✅ FUNCTION 2: Validate form
   const validateForm = () => {
     const newErrors = {};
     
@@ -45,19 +58,86 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ FUNCTION 3: Handle form submission with REAL API call (FIXED!)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
     
     setIsLoading(true);
+    console.log('🚀 Form submitted');
+    console.log('📝 Login Data:', formData);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Login Data:', formData);
+    try {
+      console.log('🔐 Attempting login for:', formData.email);
+      console.log('📤 Request: POST /auth/login');
+      
+      // REAL API call to backend
+      const response = await fetch('http://localhost:8000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      console.log('📥 Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Login failed');
+      }
+
+      const data = await response.json();
+      console.log('✅ Login response:', data);
+      
+      // 🔍 DEBUGGING - Check response structure
+      console.log('🔍 Type of data:', typeof data);
+      console.log('🔍 data.token exists?', !!data.token);
+      console.log('🔍 data.token:', data.token);
+      console.log('🔍 data.token.access_token:', data.token?.access_token);
+      console.log('🔍 data.data:', data.data);
+      console.log('🔍 Full response structure:', JSON.stringify(data, null, 2));
+      
+      // ✅ FIXED: Save token to localStorage (correct path!)
+      if (data.token && data.token.access_token) {
+        console.log('✅ Condition passed! Saving token...');
+        
+        // Save to localStorage
+        localStorage.setItem('token', data.token.access_token);
+        localStorage.setItem('user', JSON.stringify(data.data));
+        
+        console.log('💾 Token saved to localStorage');
+        console.log('👤 User data:', data.data);
+        
+        // Verify localStorage
+        console.log('🔍 Verify - Token in localStorage:', localStorage.getItem('token'));
+        console.log('🔍 Verify - User in localStorage:', localStorage.getItem('user'));
+        
+        // Redirect to dashboard
+        console.log('🎉 Redirecting to dashboard...');
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
+      } else {
+        console.error('❌ Condition failed!');
+        console.error('   data.token:', data.token);
+        console.error('   data.token.access_token:', data.token?.access_token);
+        throw new Error('Invalid response format - no token received');
+      }
+      
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      console.error('❌ Error details:', error.message);
+      setErrors({ 
+        email: error.message || 'Invalid email or password' 
+      });
+    } finally {
       setIsLoading(false);
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -101,6 +181,13 @@ export default function Login() {
             <div className="auth-header">
               <h2>Sign In</h2>
               <p>Enter your credentials to access your account</p>
+              
+              {/* Logout success message */}
+              {logoutMessage && (
+                <div className="success-message">
+                  {logoutMessage}
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">

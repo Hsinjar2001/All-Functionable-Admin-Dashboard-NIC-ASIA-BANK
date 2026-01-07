@@ -2,59 +2,7 @@ import React, { useState } from 'react';
 import './accounts';
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      accountNumber: 'ACC-1001',
-      customerName: 'John Smith',
-      accountType: 'Savings',
-      balance: 25000,
-      status: 'Active',
-      openDate: '2024-01-15',
-      branch: 'Main Branch'
-    },
-    {
-      id: 2,
-      accountNumber: 'ACC-1002',
-      customerName: 'Sarah Johnson',
-      accountType: 'Current',
-      balance: 48500,
-      status: 'Active',
-      openDate: '2024-02-20',
-      branch: 'Downtown'
-    },
-    {
-      id: 3,
-      accountNumber: 'ACC-1003',
-      customerName: 'Michael Brown',
-      accountType: 'Fixed Deposit',
-      balance: 100000,
-      status: 'Active',
-      openDate: '2024-03-10',
-      branch: 'Main Branch'
-    },
-    {
-      id: 4,
-      accountNumber: 'ACC-1004',
-      customerName: 'Emily Davis',
-      accountType: 'Savings',
-      balance: 15750,
-      status: 'Frozen',
-      openDate: '2023-12-05',
-      branch: 'Westside'
-    },
-    {
-      id: 5,
-      accountNumber: 'ACC-1005',
-      customerName: 'Robert Wilson',
-      accountType: 'Current',
-      balance: 67200,
-      status: 'Active',
-      openDate: '2024-01-25',
-      branch: 'Downtown'
-    },
-  ]);
-
+  const [accounts, setAccounts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,17 +15,15 @@ export default function Accounts() {
     branch: 'Main Branch'
   });
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR'
-  }).format(amount);
-};
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
 
   const generateAccountNumber = () => {
-    const lastAccount = accounts[accounts.length - 1];
-    const lastNumber = parseInt(lastAccount.accountNumber.split('-')[1]);
-    return `ACC-${String(lastNumber + 1).padStart(4, '0')}`;
+    return `ACC-${String(1001).padStart(4, '0')}`;
   };
 
   const handleAddAccount = () => {
@@ -114,14 +60,12 @@ const formatCurrency = (amount) => {
     e.preventDefault();
     
     if (editingAccount) {
-      // Update existing account
       setAccounts(accounts.map(acc => 
         acc.id === editingAccount.id 
           ? { ...acc, ...formData, balance: parseFloat(formData.balance) }
           : acc
       ));
     } else {
-      // Add new account
       const newAccount = {
         id: accounts.length + 1,
         accountNumber: generateAccountNumber(),
@@ -149,17 +93,15 @@ const formatCurrency = (amount) => {
     });
   };
 
-  // Filter accounts
   const filteredAccounts = accounts.filter(account => {
-    const matchesSearch = account.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         account.accountNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = account.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         account.accountNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'All' || account.accountType === filterType;
     return matchesSearch && matchesType;
   });
 
   return (
     <div className="accounts-container">
-      {/* Header */}
       <div className="accounts-header">
         <div>
           <h1>Accounts Management</h1>
@@ -174,7 +116,6 @@ const formatCurrency = (amount) => {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="accounts-stats">
         <div className="stat-box">
           <div className="stat-label">Total Accounts</div>
@@ -182,21 +123,20 @@ const formatCurrency = (amount) => {
         </div>
         <div className="stat-box">
           <div className="stat-label">Active</div>
-          <div className="stat-value">{accounts.filter(a => a.status === 'Active').length}</div>
+          <div className="stat-value">{accounts.filter(a => a?.status === 'Active').length}</div>
         </div>
         <div className="stat-box">
           <div className="stat-label">Frozen</div>
-          <div className="stat-value">{accounts.filter(a => a.status === 'Frozen').length}</div>
+          <div className="stat-value">{accounts.filter(a => a?.status === 'Frozen').length}</div>
         </div>
         <div className="stat-box">
           <div className="stat-label">Total Balance</div>
           <div className="stat-value">
-            {formatCurrency(accounts.reduce((sum, acc) => sum + acc.balance, 0))}
+            {formatCurrency(accounts.reduce((sum, acc) => sum + (acc?.balance || 0), 0))}
           </div>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="accounts-filters">
         <div className="search-box">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -222,7 +162,6 @@ const formatCurrency = (amount) => {
         </select>
       </div>
 
-      {/* Accounts Table */}
       <div className="accounts-table">
         <table>
           <thead>
@@ -285,7 +224,6 @@ const formatCurrency = (amount) => {
         </table>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

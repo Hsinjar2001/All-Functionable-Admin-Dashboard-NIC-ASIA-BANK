@@ -5,41 +5,40 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   
   const [profileData, setProfileData] = useState({
-    fullName: 'Admin User',
-    email: 'admin@abcbank.com',
-    phone: '+1 (555) 123-4567',
-    role: 'Super Admin',
-    department: 'Administration',
-    avatar: ''
+    fullName: '',
+    email: '',
+    phone: '',
+    role: '',
+    department: ''
   });
 
   const [securityData, setSecurityData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    twoFactorAuth: true,
-    loginAlerts: true
+    twoFactorAuth: false,
+    loginAlerts: false
   });
 
   const [bankSettings, setBankSettings] = useState({
-    bankName: 'ABC Bank',
-    bankCode: 'ABC123',
-    swiftCode: 'ABCUS33XXX',
-    email: 'info@abcbank.com',
-    phone: '+1 (800) 123-4567',
-    address: '123 Financial District, New York, NY 10005',
-    workingHours: '9:00 AM - 5:00 PM',
-    workingDays: 'Monday - Friday'
+    bankName: '',
+    bankCode: '',
+    swiftCode: '',
+    email: '',
+    phone: '',
+    address: '',
+    workingHours: '',
+    workingDays: ''
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
+    emailNotifications: false,
     smsNotifications: false,
-    pushNotifications: true,
-    newAccountAlerts: true,
-    transactionAlerts: true,
-    loanAlerts: true,
-    securityAlerts: true
+    pushNotifications: false,
+    newAccountAlerts: false,
+    transactionAlerts: false,
+    loanAlerts: false,
+    securityAlerts: false
   });
 
   const [systemSettings, setSystemSettings] = useState({
@@ -196,7 +195,7 @@ export default function Settings() {
             <form onSubmit={handleProfileSubmit}>
               <div className="profile-avatar-section">
                 <div className="profile-avatar-large">
-                  {profileData.fullName.split(' ').map(n => n[0]).join('')}
+                  {profileData.fullName ? profileData.fullName.split(' ').map(n => n[0]).join('') : 'U'}
                 </div>
                 <div>
                   <button type="button" className="btn-secondary">Change Avatar</button>
@@ -213,6 +212,7 @@ export default function Settings() {
                     value={profileData.fullName}
                     onChange={handleProfileChange}
                     required
+                    placeholder="Enter your full name"
                   />
                 </div>
                 <div className="form-group">
@@ -223,6 +223,7 @@ export default function Settings() {
                     value={profileData.email}
                     onChange={handleProfileChange}
                     required
+                    placeholder="Enter your email"
                   />
                 </div>
               </div>
@@ -236,6 +237,7 @@ export default function Settings() {
                     value={profileData.phone}
                     onChange={handleProfileChange}
                     required
+                    placeholder="Enter phone number"
                   />
                 </div>
                 <div className="form-group">
@@ -246,6 +248,7 @@ export default function Settings() {
                     value={profileData.role}
                     onChange={handleProfileChange}
                     disabled
+                    placeholder="Your role"
                   />
                 </div>
               </div>
@@ -257,6 +260,7 @@ export default function Settings() {
                   value={profileData.department}
                   onChange={handleProfileChange}
                 >
+                  <option value="">Select department</option>
                   <option value="Administration">Administration</option>
                   <option value="Customer Service">Customer Service</option>
                   <option value="Finance">Finance</option>
@@ -372,6 +376,7 @@ export default function Settings() {
                     value={bankSettings.bankName}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="Enter bank name"
                   />
                 </div>
                 <div className="form-group">
@@ -382,6 +387,7 @@ export default function Settings() {
                     value={bankSettings.bankCode}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="Enter bank code"
                   />
                 </div>
               </div>
@@ -395,6 +401,7 @@ export default function Settings() {
                     value={bankSettings.swiftCode}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="Enter SWIFT code"
                   />
                 </div>
                 <div className="form-group">
@@ -405,6 +412,7 @@ export default function Settings() {
                     value={bankSettings.email}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="Enter bank email"
                   />
                 </div>
               </div>
@@ -417,6 +425,7 @@ export default function Settings() {
                   value={bankSettings.phone}
                   onChange={handleBankSettingsChange}
                   required
+                  placeholder="Enter bank phone number"
                 />
               </div>
 
@@ -428,6 +437,7 @@ export default function Settings() {
                   onChange={handleBankSettingsChange}
                   rows="2"
                   required
+                  placeholder="Enter bank address"
                 />
               </div>
 
@@ -440,6 +450,7 @@ export default function Settings() {
                     value={bankSettings.workingHours}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="e.g. 9:00 AM - 5:00 PM"
                   />
                 </div>
                 <div className="form-group">
@@ -450,6 +461,7 @@ export default function Settings() {
                     value={bankSettings.workingDays}
                     onChange={handleBankSettingsChange}
                     required
+                    placeholder="e.g. Monday - Friday"
                   />
                 </div>
               </div>
