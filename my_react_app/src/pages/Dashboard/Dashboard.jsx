@@ -1,129 +1,214 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './dashboard.css';
 
 export default function Dashboard() {
-  // Add useNavigate hook
   const navigate = useNavigate();
   
-  // Initial users data
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@bankapp.com',
-      role: 'Admin',
-      department: 'Administration',
-      status: 'Active',
-      lastLogin: '2024-01-04 09:45 AM'
-    },
-    {
-      id: 2,
-      name: 'Sarah Wilson',
-      email: 'sarah.wilson@bankapp.com',
-      role: 'Manager',
-      department: 'Finance',
-      status: 'Active',
-      lastLogin: '2024-01-05 10:30 AM'
-    },
-    {
-      id: 3,
-      name: 'Michael Brown',
-      email: 'michael.brown@bankapp.com',
-      role: 'Staff',
-      department: 'Customer Service',
-      status: 'Inactive',
-      lastLogin: '2023-12-28 02:15 PM'
-    },
-    {
-      id: 4,
-      name: 'Emily Davis',
-      email: 'emily.davis@bankapp.com',
-      role: 'Staff',
-      department: 'Operations',
-      status: 'Active',
-      lastLogin: '2024-01-02 11:20 AM'
-    },
-    {
-      id: 5,
-      name: 'Robert Johnson',
-      email: 'robert.johnson@bankapp.com',
-      role: 'Manager',
-      department: 'IT',
-      status: 'Active',
-      lastLogin: '2024-01-03 08:15 AM'
-    },
-    {
-      id: 6,
-      name: 'Lisa Smith',
-      email: 'lisa.smith@bankapp.com',
-      role: 'Staff',
-      department: 'Finance',
-      status: 'Active',
-      lastLogin: '2023-12-30 01:40 PM'
-    }
-  ]);
-
-  // Stats data calculation (simplified for frontend demo)
-  const stats = {
-    totalUsers: users.length,
-    activeUsers: users.filter(user => user.status === 'Active').length,
-    pendingApprovals: users.filter(user => user.status === 'Inactive').length, // Using Inactive count as proxy for pending
-    userRoles: ['Admin', 'Manager', 'Staff']
-  };
-
+  // ✅ State management
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    pendingApprovals: 0,
+    newUsersThisMonth: 0
+  });
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('All');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [error, setError] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'Staff',
+    password: '',
+    role: 'staff',
     department: 'Operations',
-    status: 'Active'
+    status: 'active'
   });
 
-  // Modified handleLogout to use navigation
+  // ✅ Get token from localStorage
+  const getToken = () => {
+    return localStorage.getItem('token');
+  };
+
+  // ✅ Get current user from localStorage
+  const getCurrentUser = () => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  };
+
+  // ✅ Check if user is admin
+  const isAdmin = () => {
+    const user = getCurrentUser();
+    return user && (user.role === 'ADMIN' || user.role === 'admin');
+  };
+
+  // ✅ Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      console.log('📥 Fetching users from API...');
+      const token = getToken();
+      
+      if (!token) {
+        console.error('❌ No token found');
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8000/api/users/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📥 Response status:', response.status);
+
+      if (response.status === 401) {
+        console.error('❌ Unauthorized - redirecting to login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+
+      const data = await response.json();
+      console.log('✅ Users fetched:', data);
+      setUsers(data);
+      setError(null);
+    } catch (error) {
+      console.error('❌ Error fetching users:', error);
+      setError('Failed to load users');
+    }
+  };
+
+  // ✅ Fetch stats from API
+  const fetchStats = async () => {
+    try {
+      console.log('📊 Fetching stats from API...');
+      const token = getToken();
+
+      const response = await fetch('http://localhost:8000/api/users/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Stats fetched:', data);
+        setStats(data);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching stats:', error);
+    }
+  };
+
+  // ✅ Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchUsers(), fetchStats()]);
+      setLoading(false);
+    };
+    
+    loadData();
+  }, []);
+
+  // ✅ Logout handler
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
-      // Navigate to login page after logout
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       navigate('/login');
     }
   };
 
+  // ✅ Add user handler
   const handleAddUser = () => {
+    if (!isAdmin()) {
+      alert('Only admins can add users');
+      return;
+    }
+    
     setEditingUser(null);
     setFormData({
       name: '',
       email: '',
-      role: 'Staff',
+      password: '',
+      role: 'staff',
       department: 'Operations',
-      status: 'Active'
+      status: 'active'
     });
     setShowModal(true);
   };
 
+  // ✅ Edit user handler
   const handleEditUser = (user) => {
+    if (!isAdmin()) {
+      alert('Only admins can edit users');
+      return;
+    }
+    
     setEditingUser(user);
     setFormData({
       name: user.name,
       email: user.email,
+      password: '', // Don't prefill password
       role: user.role,
       department: user.department,
-      status: user.status
+      status: user.status.toLowerCase()
     });
     setShowModal(true);
   };
 
-  const handleDeleteUser = (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(user => user.id !== id));
+  // ✅ Delete user handler
+  const handleDeleteUser = async (id) => {
+    if (!isAdmin()) {
+      alert('Only admins can delete users');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      console.log(`🗑️ Deleting user ID: ${id}`);
+      const token = getToken();
+
+      const response = await fetch(`http://localhost:8000/api/users/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log('✅ User deleted successfully');
+        // Refresh data
+        await Promise.all([fetchUsers(), fetchStats()]);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.detail || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('❌ Error deleting user:', error);
+      alert('Failed to delete user');
     }
   };
 
+  // ✅ Input change handler
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -131,50 +216,121 @@ export default function Dashboard() {
     });
   };
 
-  const handleSubmit = (e) => {
+  // ✅ Submit handler (Create or Update)
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (editingUser) {
-      // Update existing user
-      setUsers(users.map(user => 
-        user.id === editingUser.id 
-          ? { ...user, id: editingUser.id, lastLogin: editingUser.lastLogin, ...formData } // Keep ID and Last Login
-          : user
-      ));
-    } else {
-      // Add new user
-      const newUser = {
-        id: users.length + 1,
-        ...formData,
-        lastLogin: 'Never'
-      };
-      setUsers([...users, newUser]);
+    if (!isAdmin()) {
+      alert('Only admins can manage users');
+      return;
     }
-    
-    setShowModal(false);
+
+    try {
+      const token = getToken();
+      
+      if (editingUser) {
+        // UPDATE USER
+        console.log(`✏️ Updating user ID: ${editingUser.id}`);
+        
+        const updateData = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          department: formData.department,
+          status: formData.status
+        };
+        
+        // Only include password if it was changed
+        if (formData.password) {
+          updateData.password = formData.password;
+        }
+
+        const response = await fetch(`http://localhost:8000/api/users/${editingUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
+
+        if (response.ok) {
+          console.log('✅ User updated successfully');
+          setShowModal(false);
+          // Refresh data
+          await Promise.all([fetchUsers(), fetchStats()]);
+        } else {
+          const errorData = await response.json();
+          alert(errorData.detail || 'Failed to update user');
+        }
+      } else {
+        // CREATE USER
+        console.log('➕ Creating new user');
+        console.log('📤 Data:', formData);
+
+        const response = await fetch('http://localhost:8000/api/users/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        console.log('📥 Response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ User created successfully:', result);
+          setShowModal(false);
+          // Refresh data
+          await Promise.all([fetchUsers(), fetchStats()]);
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Error:', errorData);
+          alert(errorData.detail || 'Failed to create user');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('Failed to save user');
+    }
   };
 
-  // Filter users
+  // ✅ Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === 'All' || user.role === filterRole;
+    const matchesRole = filterRole === 'All' || user.role.toLowerCase() === filterRole.toLowerCase();
     return matchesSearch && matchesRole;
   });
+
+  // ✅ Loading state
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div style={{ padding: '50px', textAlign: 'center' }}>
+          <h2>Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
       
-      {/* Top Nav Bar: Title and Profile/Logout */}
+      {/* Top Nav Bar */}
       <div className="top-nav-bar">
-          <h1 className="dashboard-title">Dashboard</h1>
-          <div className="profile-actions">
-              <a href="#profile" className="home-profile-link">HomeProfile</a>
-              <button className="logout-btn" onClick={handleLogout}>Logout</button>
-          </div>
+        {/* <h1 className="dashboard-title">Dashboard</h1> */}
+        <div className="profile-actions">
+          <a href="#profile" className="home-profile-link">
+            {getCurrentUser()?.name || 'Profile'}
+          </a>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
+        </div>
       </div>
       
-      {/* User Management Header (Section Title + Date) */}
+      {/* User Management Header */}
       <div className="user-management-header">
         <div className="header-info">
           <h2>User Management</h2>
@@ -191,6 +347,13 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div style={{ padding: '10px', background: '#fee', color: '#c00', borderRadius: '5px', margin: '20px 0' }}>
+          {error}
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -203,7 +366,7 @@ export default function Dashboard() {
           <div className="stat-content">
             <div className="stat-title">Total Users</div>
             <div className="stat-value">{stats.totalUsers}</div>
-            <div className="stat-info positive">+5 this month</div>
+            <div className="stat-info positive">+{stats.newUsersThisMonth} this month</div>
             <div className="progress-bar">
               <div className="progress" style={{width: '70%'}}></div>
             </div>
@@ -260,11 +423,11 @@ export default function Dashboard() {
           </div>
           <div className="stat-content">
             <div className="stat-title">User Roles</div>
-            <div className="stat-value">{stats.userRoles.length} types</div>
+            <div className="stat-value">4 types</div>
             <div className="role-tags">
-              {stats.userRoles.map((role, index) => (
-                <span key={index} className={`role-tag ${role.toLowerCase()}`}>{role}</span>
-              ))}
+              <span className="role-tag admin">Admin</span>
+              <span className="role-tag manager">Manager</span>
+              <span className="role-tag staff">Staff</span>
             </div>
           </div>
         </div>
@@ -315,16 +478,16 @@ export default function Dashboard() {
             onChange={(e) => setFilterRole(e.target.value)}
           >
             <option value="All">All Roles</option>
-            <option value="Admin">Admin</option>
-            <option value="Manager">Manager</option>
-            <option value="Staff">Staff</option>
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="staff">Staff</option>
+            <option value="user">User</option>
           </select>
         </div>
       </div>
 
-      {/* User Table/Cards (responsive) */}
+      {/* User Table */}
       <div className="users-table-container">
-        {/* Desktop Table (Hidden on mobile) */}
         <div className="users-table desktop-table">
           <table>
             <thead>
@@ -403,7 +566,7 @@ export default function Dashboard() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Full Name</label>
+                <label>Full Name *</label>
                 <input
                   type="text"
                   name="name"
@@ -415,7 +578,7 @@ export default function Dashboard() {
               </div>
               
               <div className="form-group">
-                <label>Email</label>
+                <label>Email *</label>
                 <input
                   type="email"
                   name="email"
@@ -426,23 +589,37 @@ export default function Dashboard() {
                 />
               </div>
               
+              <div className="form-group">
+                <label>Password {editingUser ? '(leave blank to keep current)' : '*'}</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required={!editingUser}
+                  placeholder={editingUser ? "Leave blank to keep current" : "Enter password"}
+                  minLength="6"
+                />
+              </div>
+              
               <div className="form-row">
                 <div className="form-group">
-                  <label>Role</label>
+                  <label>Role *</label>
                   <select
                     name="role"
                     value={formData.role}
                     onChange={handleInputChange}
                     required
                   >
-                    <option value="Admin">Admin</option>
-                    <option value="Manager">Manager</option>
-                    <option value="Staff">Staff</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                    <option value="staff">Staff</option>
+                    <option value="user">User</option>
                   </select>
                 </div>
                 
                 <div className="form-group">
-                  <label>Department</label>
+                  <label>Department *</label>
                   <select
                     name="department"
                     value={formData.department}
@@ -459,15 +636,15 @@ export default function Dashboard() {
               </div>
               
               <div className="form-group">
-                <label>Status</label>
+                <label>Status *</label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
                   required
                 >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
                 </select>
               </div>
               
