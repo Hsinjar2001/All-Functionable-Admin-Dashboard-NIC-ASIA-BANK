@@ -1,3 +1,4 @@
+# app/main.py
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -5,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth  # ✅ CHANGED THIS LINE
+from app.routers import auth, users  # ⭐ ADD users
 import logging
 
 # Configure logging
@@ -27,7 +28,7 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.API_VERSION,
     debug=settings.DEBUG,
-    description="NIC Bank Authentication API with JWT",
+    description="NIC Bank Authentication API with JWT and User Management",  # ⭐ UPDATED
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -91,6 +92,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # Include routers
 app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")  # ⭐ ADD THIS LINE
 
 # Root endpoint
 @app.get(
@@ -131,6 +133,7 @@ async def startup_event():
     logger.info(f"🚀 Starting {settings.APP_NAME} v{settings.API_VERSION}")
     logger.info(f"📝 API Documentation: http://localhost:8000/docs")
     logger.info(f"🔍 ReDoc Documentation: http://localhost:8000/redoc")
+    logger.info(f"👥 User Management endpoints enabled")  # ⭐ ADD THIS
 
 # Shutdown event
 @app.on_event("shutdown")

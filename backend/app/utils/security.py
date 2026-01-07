@@ -1,98 +1,135 @@
 # app/utils/security.py
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-
-from jose import JWTError, jwt
 from passlib.context import CryptContext
+from datetime import datetime, timedelta
+from jose import jwt
+from typing import Optional
+import os
+from dotenv import load_dotenv
 
-from app.config import settings
-from app.schemas.token import TokenData
+# Load environment variables
+load_dotenv()
 
-# Use Argon2 instead of bcrypt
+# ========================================
+# CONFIGURATION
+# ========================================
+
+# Get SECRET_KEY from environment
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+print(f"🔍 security.py loaded - SECRET_KEY: {SECRET_KEY[:15]}... (length: {len(SECRET_KEY)})")
+
+# Password hashing context using Argon2
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
-# 🔍 DEBUG: Print SECRET_KEY on module load
-print(f"🔍 security.py loaded - SECRET_KEY: {settings.SECRET_KEY[:15]}... (length: {len(settings.SECRET_KEY)})")
 
+# ========================================
+# PASSWORD FUNCTIONS
+# ========================================
 
 def hash_password(password: str) -> str:
-    """Hash a plain password using bcrypt."""
+    """
+    Hash a password using Argon2 (original name)
+    
+    Args:
+        password: Plain text password
+        
+    Returns:
+        Hashed password string
+    """
     return pwd_context.hash(password)
 
 
+def get_password_hash(password: str) -> str:
+    """
+    Hash a password using Argon2 (alias for hash_password)
+    
+    Args:
+        password: Plain text password
+        
+    Returns:
+        Hashed password string
+    """
+    return hash_password(password)
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password."""
+    """
+    Verify a password against a hash
+    
+    Args:
+        plain_password: Plain text password to verify
+        hashed_password: Hashed password from database
+        
+    Returns:
+        True if password matches, False otherwise
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None,
-) -> str:
- 
+# ========================================
+# JWT TOKEN FUNCTIONS
+# ========================================
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create a JWT access token
+    
+    Args:
+        data: Dictionary containing token payload (usually user_id and email)
+        expires_delta: Optional custom expiration time
+        
+    Returns:
+        Encoded JWT token string
+    """
     to_encode = data.copy()
     
+    # Set expiration time
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
+    # Add expiration to token payload
     to_encode.update({"exp": expire})
     
-    # 🔍 DEBUG: Print token creation info
     print(f"\n🔑 Creating token for user_id={data.get('sub')}, email={data.get('email')}")
-    print(f"   Using SECRET_KEY: {settings.SECRET_KEY[:15]}...")
+    print(f"   Using SECRET_KEY: {SECRET_KEY[:15]}...")
+    print(f"   Token payload: {to_encode}")
     
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM,
-    )
+    # Encode token
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     
-    print(f"   Token created: {encoded_jwt[:50]}...")
+    print(f"   ✅ Token created: {encoded_jwt[:50]}...")
     
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[TokenData]:
+def decode_access_token(token: str) -> dict:
+    """
+    Decode and verify a JWT access token
+    
+    Args:
+        token: JWT token string
+        
+    Returns:
+        Decoded token payload dictionary
+        
+    Raises:
+        JWTError: If token is invalid or expired
+    """
+    print(f"\n🔓 Decoding token: {token[:50]}...")
+    print(f"   Using SECRET_KEY: {SECRET_KEY[:15]}...")
     
     try:
-        # 🔍 DEBUG: Print decode attempt
-        print(f"\n🔓 Decoding token: {token[:50]}...")
-        print(f"   Using SECRET_KEY: {settings.SECRET_KEY[:15]}...")
-        
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
-        )
-        
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         print(f"   ✅ Token decoded successfully!")
         print(f"   Payload: {payload}")
-        
-        # Extract user_id from 'sub' claim (standard JWT claim)
-        sub = payload.get("sub")
-        email = payload.get("email")
-        
-        if sub is None:
-            print(f"   ❌ No 'sub' in payload")
-            return None
-        
-        # Convert sub to integer (user_id)
-        try:
-            user_id = int(sub)
-        except (TypeError, ValueError):
-            print(f"   ❌ Cannot convert sub to int: {sub}")
-            return None
-        
-        token_data = TokenData(user_id=user_id, email=email)
-        print(f"   ✅ Valid token for user_id={user_id}")
-        
-        return token_data
-        
-    except JWTError as e:
-        # Token is invalid (expired, wrong signature, malformed, etc.)
-        print(f"   ❌ JWT Error: {type(e).__name__}: {e}")
-        return None
+        return payload
+    except jwt.ExpiredSignatureError:
+        print(f"   ❌ Token expired")
+        raise
+    except jwt.JWTError as e:
+        print(f"   ❌ Token decode error: {e}")
+        raise

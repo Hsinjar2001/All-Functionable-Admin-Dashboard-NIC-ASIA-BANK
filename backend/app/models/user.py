@@ -1,12 +1,17 @@
+# app/models/user.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
 
+
 class UserRole(str, enum.Enum):
-    """User role enum"""
-    USER = "user"
-    ADMIN = "admin"
+    """User role enum - VALUES MUST MATCH DATABASE ENUM"""
+    USER = "USER"        # Database has uppercase
+    ADMIN = "ADMIN"      # Database has uppercase
+    MANAGER = "MANAGER"  # Database has uppercase
+    STAFF = "STAFF"      # Database has uppercase
+
 
 class User(Base):
     """User database model"""
@@ -21,7 +26,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     
     # Role and status
-    role = Column(SQLEnum(UserRole), default=UserRole.USER, nullable=False)
+    role = Column(SQLEnum(UserRole, name='userrole'), default=UserRole.USER, nullable=False)
+    department = Column(String(100), default="Operations", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Timestamps
