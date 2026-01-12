@@ -1,11 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '../../components/Pagination/Pagination';
 import './dashboard.css';
+
+// ✅ Success Toast Component
+function SuccessToast({ message, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      background: '#10b981',
+      color: 'white',
+      padding: '15px 20px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      zIndex: 10000,
+      animation: 'slideInRight 0.3s ease-out'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span>{message}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   
-  // ✅ State management
+  // ============================================
+  // STATE MANAGEMENT
+  // ============================================
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -18,8 +52,18 @@ export default function Dashboard() {
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('All');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState(null);
+  
+  // ✅ PAGINATION STATE - NOW WITH DYNAMIC PAGE SIZE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // ✅ NOW A STATE
+  const pageSizeOptions = [5, 10]; // ✅ OPTIONS
+  
+  // ✅ SUCCESS TOAST STATE
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -30,36 +74,61 @@ export default function Dashboard() {
     status: 'active'
   });
 
-  // ✅ Get token from localStorage
-  const getToken = () => {
-    return localStorage.getItem('token');
-  };
+  // ============================================
+  // HELPER FUNCTIONS
+  // ============================================
+  
+  const getToken = () => localStorage.getItem('token');
 
-  // ✅ Get current user from localStorage
   const getCurrentUser = () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   };
 
-  // ✅ Check if user is admin
   const isAdmin = () => {
     const user = getCurrentUser();
     return user && (user.role === 'ADMIN' || user.role === 'admin');
   };
 
-  // ✅ Fetch users from API
-  const fetchUsers = async () => {
+  // ============================================
+  // ✅ FETCH USERS
+  // ============================================
+  
+  const fetchUsers = useCallback(async (page = 1) => {
+    console.log('\n========================================');
+    console.log('📥 FETCHING USERS');
+    console.log('========================================');
+    console.log(`Page: ${page}`);
+    console.log(`Limit: ${itemsPerPage}`);
+    console.log(`Search: ${searchTerm || 'none'}`);
+    console.log(`Filter: ${filterRole}`);
+    
     try {
-      console.log('📥 Fetching users from API...');
       const token = getToken();
       
       if (!token) {
-        console.error('❌ No token found');
+        console.error('❌ No token found - redirecting to login');
         navigate('/login');
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/users/', {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: itemsPerPage.toString()
+      });
+
+      if (searchTerm && searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+
+      if (filterRole && filterRole !== 'All') {
+        params.append('role', filterRole.toLowerCase());
+      }
+
+      const url = `http://localhost:8000/api/users/?${params.toString()}`;
+      console.log('📤 Request URL:', url);
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -69,33 +138,69 @@ export default function Dashboard() {
       console.log('📥 Response status:', response.status);
 
       if (response.status === 401) {
-        console.error('❌ Unauthorized - redirecting to login');
+        console.error('❌ Unauthorized - token expired');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         navigate('/login');
         return;
       }
 
+      if (response.status === 403) {
+        console.error('❌ Forbidden - no permission');
+        setError('You do not have permission to view users');
+        setUsers([]);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to fetch users');
+        throw new Error(`HTTP ${response.status}: Failed to fetch users`);
       }
 
       const data = await response.json();
-      console.log('✅ Users fetched:', data);
-      setUsers(data);
-      setError(null);
+      console.log('📦 Raw response:', data);
+      
+      if (data && data.users && Array.isArray(data.users)) {
+        console.log('\n✅ PAGINATED RESPONSE:');
+        console.log(`  📄 Users on page: ${data.users.length}`);
+        console.log(`  📊 Total users: ${data.total}`);
+        console.log(`  📚 Total pages: ${data.totalPages}`);
+        console.log(`  🔢 Current page: ${data.page}`);
+        
+        setUsers(data.users);
+        setTotalItems(data.total);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.page);
+        setError(null);
+        
+      } else if (Array.isArray(data)) {
+        console.log('⚠️ Array response (not paginated)');
+        setUsers(data);
+        setTotalItems(data.length);
+        setTotalPages(Math.ceil(data.length / itemsPerPage));
+        setCurrentPage(page);
+      } else {
+        console.error('❌ Unknown response format');
+        setUsers([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      }
+      
     } catch (error) {
       console.error('❌ Error fetching users:', error);
-      setError('Failed to load users');
+      setError(error.message || 'Failed to load users');
+      setUsers([]);
+      setTotalItems(0);
+      setTotalPages(1);
     }
-  };
+  }, [searchTerm, filterRole, navigate, itemsPerPage]); // ✅ Added itemsPerPage to dependencies
 
-  // ✅ Fetch stats from API
-  const fetchStats = async () => {
+  // ============================================
+  // FETCH STATS
+  // ============================================
+  
+  const fetchStats = useCallback(async () => {
     try {
-      console.log('📊 Fetching stats from API...');
       const token = getToken();
-
       const response = await fetch('http://localhost:8000/api/users/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -105,26 +210,85 @@ export default function Dashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Stats fetched:', data);
+        console.log('📊 Stats loaded:', data);
         setStats(data);
       }
     } catch (error) {
       console.error('❌ Error fetching stats:', error);
     }
+  }, []);
+
+  // ============================================
+  // ✅ PAGE CHANGE HANDLER
+  // ============================================
+  
+  const handlePageChange = (newPage) => {
+    console.log('\n========================================');
+    console.log('🔄 PAGE CHANGE');
+    console.log('========================================');
+    console.log(`From page: ${currentPage} → To page: ${newPage}`);
+    
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) {
+      console.log('❌ Invalid or same page');
+      return;
+    }
+    
+    console.log('✅ Fetching new page...\n');
+    fetchUsers(newPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // ✅ Load data on mount
+  // ============================================
+  // ✅ PAGE SIZE CHANGE HANDLER
+  // ============================================
+  
+  const handlePageSizeChange = (newSize) => {
+    console.log(`📏 Page size changed: ${itemsPerPage} → ${newSize}`);
+    setItemsPerPage(newSize);
+    setCurrentPage(1); // Reset to page 1
+    // fetchUsers will be called automatically by useEffect
+  };
+
+  // ============================================
+  // ✅ INITIAL LOAD
+  // ============================================
+  
   useEffect(() => {
-    const loadData = async () => {
+    console.log('🚀 Dashboard mounted - loading initial data');
+    
+    const loadInitialData = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchStats()]);
+      await Promise.all([
+        fetchUsers(1),
+        fetchStats()
+      ]);
       setLoading(false);
     };
     
-    loadData();
+    loadInitialData();
   }, []);
 
-  // ✅ Logout handler
+  // ============================================
+  // ✅ SEARCH/FILTER/PAGE SIZE CHANGE
+  // ============================================
+  
+  useEffect(() => {
+    if (loading) return;
+    
+    console.log('🔍 Search/Filter/PageSize changed - resetting to page 1');
+    
+    const timer = setTimeout(() => {
+      setCurrentPage(1);
+      fetchUsers(1);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm, filterRole, itemsPerPage, loading, fetchUsers]); // ✅ Added itemsPerPage
+
+  // ============================================
+  // USER MANAGEMENT HANDLERS
+  // ============================================
+  
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
       localStorage.removeItem('token');
@@ -133,7 +297,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Add user handler
   const handleAddUser = () => {
     if (!isAdmin()) {
       alert('Only admins can add users');
@@ -152,7 +315,6 @@ export default function Dashboard() {
     setShowModal(true);
   };
 
-  // ✅ Edit user handler
   const handleEditUser = (user) => {
     if (!isAdmin()) {
       alert('Only admins can edit users');
@@ -163,15 +325,14 @@ export default function Dashboard() {
     setFormData({
       name: user.name,
       email: user.email,
-      password: '', // Don't prefill password
-      role: user.role,
+      password: '',
+      role: user.role.toLowerCase(),
       department: user.department,
       status: user.status.toLowerCase()
     });
     setShowModal(true);
   };
 
-  // ✅ Delete user handler
   const handleDeleteUser = async (id) => {
     if (!isAdmin()) {
       alert('Only admins can delete users');
@@ -183,9 +344,7 @@ export default function Dashboard() {
     }
 
     try {
-      console.log(`🗑️ Deleting user ID: ${id}`);
       const token = getToken();
-
       const response = await fetch(`http://localhost:8000/api/users/${id}`, {
         method: 'DELETE',
         headers: {
@@ -195,9 +354,17 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        console.log('✅ User deleted successfully');
-        // Refresh data
-        await Promise.all([fetchUsers(), fetchStats()]);
+        setSuccessMessage('User deleted successfully!');
+        setShowSuccessToast(true);
+        
+        const usersOnPage = users.length;
+        if (usersOnPage === 1 && currentPage > 1) {
+          await fetchUsers(currentPage - 1);
+        } else {
+          await fetchUsers(currentPage);
+        }
+        
+        await fetchStats();
       } else {
         const errorData = await response.json();
         alert(errorData.detail || 'Failed to delete user');
@@ -208,7 +375,6 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Input change handler
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -216,7 +382,6 @@ export default function Dashboard() {
     });
   };
 
-  // ✅ Submit handler (Create or Update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -229,9 +394,6 @@ export default function Dashboard() {
       const token = getToken();
       
       if (editingUser) {
-        // UPDATE USER
-        console.log(`✏️ Updating user ID: ${editingUser.id}`);
-        
         const updateData = {
           name: formData.name,
           email: formData.email,
@@ -240,7 +402,6 @@ export default function Dashboard() {
           status: formData.status
         };
         
-        // Only include password if it was changed
         if (formData.password) {
           updateData.password = formData.password;
         }
@@ -255,19 +416,18 @@ export default function Dashboard() {
         });
 
         if (response.ok) {
-          console.log('✅ User updated successfully');
           setShowModal(false);
-          // Refresh data
-          await Promise.all([fetchUsers(), fetchStats()]);
+          await fetchUsers(currentPage);
+          await fetchStats();
+          
+          setSuccessMessage(`User "${updateData.name}" updated successfully!`);
+          setShowSuccessToast(true);
         } else {
           const errorData = await response.json();
           alert(errorData.detail || 'Failed to update user');
         }
+        
       } else {
-        // CREATE USER
-        console.log('➕ Creating new user');
-        console.log('📤 Data:', formData);
-
         const response = await fetch('http://localhost:8000/api/users/', {
           method: 'POST',
           headers: {
@@ -277,17 +437,18 @@ export default function Dashboard() {
           body: JSON.stringify(formData)
         });
 
-        console.log('📥 Response status:', response.status);
-
         if (response.ok) {
           const result = await response.json();
-          console.log('✅ User created successfully:', result);
           setShowModal(false);
-          // Refresh data
-          await Promise.all([fetchUsers(), fetchStats()]);
+          
+          await fetchUsers(1);
+          await fetchStats();
+          
+          const userName = result.data?.name || formData.name;
+          setSuccessMessage(`User "${userName}" created successfully!`);
+          setShowSuccessToast(true);
         } else {
           const errorData = await response.json();
-          console.error('❌ Error:', errorData);
           alert(errorData.detail || 'Failed to create user');
         }
       }
@@ -297,35 +458,45 @@ export default function Dashboard() {
     }
   };
 
-  // ✅ Filter users
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === 'All' || user.role.toLowerCase() === filterRole.toLowerCase();
-    return matchesSearch && matchesRole;
-  });
-
-  // ✅ Loading state
+  // ============================================
+  // LOADING STATE
+  // ============================================
+  
   if (loading) {
     return (
       <div className="dashboard-container">
-        <div style={{ padding: '50px', textAlign: 'center' }}>
-          <h2>Loading...</h2>
+        <div style={{ 
+          padding: '50px', 
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
+        }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '5px solid #f3f4f6',
+            borderTop: '5px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <h2 style={{ color: '#fff' }}>Loading Dashboard...</h2>
         </div>
       </div>
     );
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
+  
   return (
     <div className="dashboard-container">
       
       {/* Top Nav Bar */}
       <div className="top-nav-bar">
-        {/* <h1 className="dashboard-title">Dashboard</h1> */}
         <div className="profile-actions">
-          {/* <a href="#profile" className="home-profile-link">
-            {getCurrentUser()?.name || 'Profile'}
-          </a> */}
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </div>
@@ -343,16 +514,35 @@ export default function Dashboard() {
             <line x1="8" y1="2" x2="8" y2="6"/>
             <line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span>{new Date().toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</span>
         </div>
       </div>
 
       {/* Error Message */}
-      {error && (
-        <div style={{ padding: '10px', background: '#fee', color: '#c00', borderRadius: '5px', margin: '20px 0' }}>
+      {/* {error && (
+        <div style={{ 
+          padding: '15px 20px', 
+          background: '#fee2e2', 
+          color: '#dc2626', 
+          borderRadius: '8px', 
+          margin: '20px 2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
           {error}
         </div>
-      )}
+      )} */}
 
       {/* Stats Cards */}
       <div className="stats-grid">
@@ -433,21 +623,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Mobile Filter Toggle */}
-      {/* <button 
-        className="mobile-filter-toggle"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      > */}
-        {/* <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg> */}
-        Filters & Options
-      {/* </button> */}
-
       {/* User Management Tools */}
-      <div className={`management-tools ${mobileMenuOpen ? 'open' : ''}`}>
+      <div className="management-tools">
         <div className="left-tools">
           <button className="add-user-btn" onClick={handleAddUser}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -461,10 +638,6 @@ export default function Dashboard() {
         </div>
         <div className="right-tools">
           <div className="search-box">
-            {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg> */}
             <input 
               type="text" 
               placeholder="Search users..." 
@@ -502,8 +675,8 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map(user => (
+              {users.length > 0 ? (
+                users.map(user => (
                   <tr key={user.id}>
                     <td>
                       <div className="user-info">
@@ -525,7 +698,7 @@ export default function Dashboard() {
                         {user.status}
                       </span>
                     </td>
-                    <td>{user.lastLogin}</td>
+                    <td>{user.lastLogin || 'Never'}</td>
                     <td>
                       <div className="action-buttons">
                         <button 
@@ -548,13 +721,28 @@ export default function Dashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="no-results">No users found matching your search criteria.</td>
+                  <td colSpan="7" className="no-results">
+                    {error ? error : 'No users found matching your search criteria.'}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* ✅ PAGINATION COMPONENT WITH PAGE SIZE OPTIONS */}
+      {!loading && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          pageSizeOptions={pageSizeOptions}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      )}
       
       {/* Add/Edit User Modal */}
       {showModal && (
@@ -660,6 +848,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <SuccessToast 
+          message={successMessage} 
+          onClose={() => setShowSuccessToast(false)} 
+        />
+      )}
+      
     </div>
   );
 }

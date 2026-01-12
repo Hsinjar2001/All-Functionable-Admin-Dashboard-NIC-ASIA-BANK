@@ -2,69 +2,7 @@ import React, { useState } from 'react';
 import './transactions.css';
 
 export default function Transactions() {
-  const [transactions, setTransactions] = useState([
-    {
-      id: 1,
-      transactionId: 'TXN001',
-      date: '2024-12-31',
-      time: '10:30 AM',
-      type: 'Deposit',
-      fromAccount: '-',
-      toAccount: 'ACC-1001',
-      amount: 5000,
-      status: 'Success',
-      description: 'Cash deposit'
-    },
-    {
-      id: 2,
-      transactionId: 'TXN002',
-      date: '2024-12-31',
-      time: '10:15 AM',
-      type: 'Withdrawal',
-      fromAccount: 'ACC-1045',
-      toAccount: '-',
-      amount: 2000,
-      status: 'Success',
-      description: 'ATM withdrawal'
-    },
-    {
-      id: 3,
-      transactionId: 'TXN003',
-      date: '2024-12-31',
-      time: '09:45 AM',
-      type: 'Transfer',
-      fromAccount: 'ACC-1089',
-      toAccount: 'ACC-1120',
-      amount: 15000,
-      status: 'Pending',
-      description: 'Fund transfer'
-    },
-    {
-      id: 4,
-      transactionId: 'TXN004',
-      date: '2024-12-31',
-      time: '09:30 AM',
-      type: 'Deposit',
-      fromAccount: '-',
-      toAccount: 'ACC-1120',
-      amount: 8000,
-      status: 'Success',
-      description: 'Cheque deposit'
-    },
-    {
-      id: 5,
-      transactionId: 'TXN005',
-      date: '2024-12-31',
-      time: '09:00 AM',
-      type: 'Transfer',
-      fromAccount: 'ACC-1156',
-      toAccount: 'ACC-1001',
-      amount: 3500,
-      status: 'Failed',
-      description: 'Insufficient balance'
-    },
-  ]);
-
+  const [transactions, setTransactions] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('All');
@@ -77,15 +15,17 @@ export default function Transactions() {
     description: ''
   });
 
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR'
-  }).format(amount);
-};
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
 
   const generateTransactionId = () => {
+    if (transactions.length === 0) {
+      return 'TXN001';
+    }
     const lastTransaction = transactions[transactions.length - 1];
     const lastNumber = parseInt(lastTransaction.transactionId.replace('TXN', ''));
     return `TXN${String(lastNumber + 1).padStart(3, '0')}`;

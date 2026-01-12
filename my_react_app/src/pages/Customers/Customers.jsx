@@ -2,69 +2,7 @@ import React, { useState } from 'react';
 import './customers.css';
 
 export default function Customers() {
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      customerId: 'CUST-001',
-      fullName: 'John Smith',
-      email: 'john.smith@email.com',
-      phone: '+1 (555) 123-4567',
-      address: '123 Main St, New York, NY 10001',
-      dateOfBirth: '1985-03-15',
-      accountNumber: 'ACC-1001',
-      status: 'Active',
-      joinDate: '2024-01-15'
-    },
-    {
-      id: 2,
-      customerId: 'CUST-002',
-      fullName: 'Sarah Johnson',
-      email: 'sarah.j@email.com',
-      phone: '+1 (555) 234-5678',
-      address: '456 Oak Ave, Los Angeles, CA 90001',
-      dateOfBirth: '1990-07-22',
-      accountNumber: 'ACC-1002',
-      status: 'Active',
-      joinDate: '2024-02-20'
-    },
-    {
-      id: 3,
-      customerId: 'CUST-003',
-      fullName: 'Michael Brown',
-      email: 'michael.b@email.com',
-      phone: '+1 (555) 345-6789',
-      address: '789 Pine Rd, Chicago, IL 60601',
-      dateOfBirth: '1988-11-30',
-      accountNumber: 'ACC-1003',
-      status: 'Active',
-      joinDate: '2024-03-10'
-    },
-    {
-      id: 4,
-      customerId: 'CUST-004',
-      fullName: 'Emily Davis',
-      email: 'emily.davis@email.com',
-      phone: '+1 (555) 456-7890',
-      address: '321 Elm St, Houston, TX 77001',
-      dateOfBirth: '1992-05-18',
-      accountNumber: 'ACC-1004',
-      status: 'Inactive',
-      joinDate: '2023-12-05'
-    },
-    {
-      id: 5,
-      customerId: 'CUST-005',
-      fullName: 'Robert Wilson',
-      email: 'robert.w@email.com',
-      phone: '+1 (555) 567-8901',
-      address: '654 Maple Dr, Phoenix, AZ 85001',
-      dateOfBirth: '1987-09-25',
-      accountNumber: 'ACC-1005',
-      status: 'Active',
-      joinDate: '2024-01-25'
-    },
-  ]);
-
+  const [customers, setCustomers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [viewingCustomer, setViewingCustomer] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -81,6 +19,9 @@ export default function Customers() {
   });
 
   const generateCustomerId = () => {
+    if (customers.length === 0) {
+      return 'CUST-001';
+    }
     const lastCustomer = customers[customers.length - 1];
     const lastNumber = parseInt(lastCustomer.customerId.split('-')[1]);
     return `CUST-${String(lastNumber + 1).padStart(3, '0')}`;
