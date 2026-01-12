@@ -1,6 +1,6 @@
 # app/schemas/user.py
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -20,7 +20,6 @@ class RoleEnum(str, Enum):
 # BASE SCHEMAS
 # ========================================
 
-# Base user schema
 class UserBase(BaseModel):
     """Base user schema with common fields"""
     email: EmailStr
@@ -31,7 +30,6 @@ class UserBase(BaseModel):
 # AUTHENTICATION SCHEMAS
 # ========================================
 
-# ✅ FIXED: Registration schema (removed confirm_password)
 class UserRegister(UserBase):
     """Schema for user registration"""
     password: str = Field(..., min_length=6, max_length=100)
@@ -60,7 +58,6 @@ class UserRegister(UserBase):
         }
 
 
-# Login schema
 class UserLogin(BaseModel):
     """Schema for user login"""
     email: EmailStr
@@ -75,11 +72,10 @@ class UserLogin(BaseModel):
         }
 
 
-# User response schema
 class UserResponse(UserBase):
     """Schema for user data in API responses"""
     id: int
-    role: str  # Changed from UserRole to str
+    role: str
     is_active: bool
     last_login: Optional[datetime] = None
     created_at: datetime
@@ -89,7 +85,6 @@ class UserResponse(UserBase):
         from_attributes = True
 
 
-# User in database (includes password)
 class UserInDB(UserResponse):
     """Schema for user with hashed password"""
     hashed_password: str
@@ -168,6 +163,8 @@ class UserManagementResponse(BaseModel):
     department: str
     status: str
     lastLogin: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -179,6 +176,50 @@ class UserStatsResponse(BaseModel):
     activeUsers: int
     pendingApprovals: int
     newUsersThisMonth: int
+
+
+# ========================================
+# ✅ PAGINATION SCHEMA
+# ========================================
+
+class PaginatedUsersResponse(BaseModel):
+    """Response model for paginated users list"""
+    users: List[UserManagementResponse]
+    total: int = Field(..., description="Total number of users matching filters")
+    page: int = Field(..., description="Current page number")
+    limit: int = Field(..., description="Items per page")
+    totalPages: int = Field(..., description="Total number of pages")
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "users": [
+                    {
+                        "id": 1,
+                        "name": "John Doe",
+                        "email": "john@example.com",
+                        "role": "admin",
+                        "department": "IT",
+                        "status": "Active",
+                        "lastLogin": "2024-01-07 09:30 AM"
+                    },
+                    {
+                        "id": 2,
+                        "name": "Jane Smith",
+                        "email": "jane@example.com",
+                        "role": "manager",
+                        "department": "Finance",
+                        "status": "Active",
+                        "lastLogin": "2024-01-06 03:15 PM"
+                    }
+                ],
+                "total": 50,
+                "page": 1,
+                "limit": 10,
+                "totalPages": 5
+            }
+        }
 
 
 # ========================================
